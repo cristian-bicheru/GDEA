@@ -5,7 +5,6 @@ from Crypto import Random
 import ast
 from decimal import *
 import sympy
-from fsplit.filesplit import FileSplit
 
 # Graphical Data Encryption Algorithm Version 1.0
 # JamHacks 2, 2018 Project
@@ -33,8 +32,14 @@ from fsplit.filesplit import FileSplit
 eqModifiers = ['x**5', 'x**4', 'x**3', 'x**2', 'x']
 
 def split(size, file, outdir):
-    fs = FileSplit(file=file, splitsize=size, output_dir=outdir)
-    fs.split()
+    chunk = file.read(size)
+    i = 0
+    while chunk != b'' and chunk != '':
+        with open(outdir + '/img_' + str(i) + ".jpg",'wb') as w:
+            w.write(chunk)
+            w.close()
+        chunk = file.read(size)
+        i += 1
 
 def rawToBytearray(file):
     with open(file, "rb") as rawFile:
@@ -45,7 +50,7 @@ def genRandom(num):
     return int.from_bytes(os.urandom(num), byteorder='little')
 
 def genKeyPair():
-    targetArea = genRandom(15) # Generates target area
+    targetArea = genRandom(7) # Generates target area, due to python, setting this too high causes data corruption
     blockUCode = genRandom(1) # Generates unscrambling code
     Offset = 1 #genRandom(7) # Generates offset length, currently disbaled to to being problematic
 
@@ -74,7 +79,7 @@ def genRSA():
 
 def encrypt(keyPair, file):
     
-    plainInt = int.from_bytes(file, byteorder='big', signed=False) * int(keyPair[1])
+    plainInt = int.from_bytes(file, byteorder='little', signed=False) * int(keyPair[1])
     compressor = 65536*4 # splits data into many chunks for lower cipher text size and greater efficiency
     
     splitter = divmod(plainInt, compressor)
@@ -158,7 +163,8 @@ def positiveValues(lst):
     return [x for x in lst if x > 0] or None
 
 def int_to_bytes(x):
-    return x.to_bytes((x.bit_length() + 7) // 8, 'big')
+    return x.to_bytes((x.bit_length() + 7) // 8, 'little')
+
 
 def decrypt(keyPair, cipherText, filenameout):
 
@@ -197,6 +203,7 @@ def decrypt(keyPair, cipherText, filenameout):
     else:
         with open(str(filenameout), "wb") as imageFile:
             imageFile.write(rawFile)
+            imageFile.close()
         return
 
 def decryptMessage(keyPair, cipherText):
