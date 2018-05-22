@@ -145,11 +145,6 @@ namespace bigNum{
     
     DivMod divmod(unsigned char num[], int size, int denominator){
         
-        for(int i=0; i<size; i++){
-            cout << (int)num[i] << " ";
-        }
-        cout << endl;
-        
         DivMod dm;
         unsigned int mod = 0;
         for(int i=size-1; i>-1; i--){
@@ -158,9 +153,7 @@ namespace bigNum{
             mod = withCarried % denominator;
         }
         dm.mod = mod;
-        for(unsigned char c: dm.divided){
-            cout << (int)c << " ";
-        }
+        
         return dm;
     }
     
@@ -354,7 +347,7 @@ typedef struct{
     vector<unsigned char> compressionFactor;
 } CipherEquations;
 
-void encrypt(KeyPair keyPair, unsigned char plainText[], int chunkSize){
+CipherEquations encrypt(KeyPair keyPair, unsigned char plainText[], int chunkSize){
     // splits data into many chunks for lower cipher text size and greater efficiency
     int compressor = 65536 * 4;
     
@@ -453,9 +446,6 @@ void encrypt(KeyPair keyPair, unsigned char plainText[], int chunkSize){
     string me = equationListToString(moduloEquation);
     me = simplify(me);
     
-    cout << me << endl;
-    
-    /*
     Equation compe = stringToEquationData(ce);
     Equation mode = stringToEquationData(me);
 
@@ -468,7 +458,6 @@ void encrypt(KeyPair keyPair, unsigned char plainText[], int chunkSize){
         mode,
         splitter.divided
     };
-    */
 }
 
 
