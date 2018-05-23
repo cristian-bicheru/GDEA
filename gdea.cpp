@@ -5,6 +5,7 @@
 #include <vector>
 #include <symengine/parser.h>
 #include <symengine/basic.h>
+#include <symengine/series.h>
 #include <string>
 #include <gmp.h>
 
@@ -182,28 +183,14 @@ namespace bigNum{
     }
     
     typedef struct{
-        long long digits;
-        int zeros;
-        int power;
-        bool positive;
+        mpf_t digits;
+        mpf_t power;
     } HighNum;
     
     HighNum stringToHighNum(string buff){
         HighNum h;
-        
-        // the first character is either - or a space
-        
-        h.positive = true;
-        if (buff.at(0) == '-'){
-            h.positive = false;
-        }
-        
-        // get the unique digits that must be maintained, ignoring the decimal
-        string s = buff.at(1) +  buff.substr(3,buff.find((string)"e")-3);
-        h.digits = stoll(s);
-        // account for the decimal ignored by taking away from the amount of 0s
-        h.zeros = stoi(buff.substr(buff.find((string)"+") + 1,buff.length()-buff.find((string)"+") - 1)) - 
-            s.length() + 1;
+        mpf_init(h.digits);
+        mpf_set_str(h.digits, buff.c_str(), 10);
         
         return h;
     }
@@ -216,14 +203,14 @@ string simplify(string s){
     return test->__str__();
 }
 
-string equationListToString(mpf_t equation[6][2]){
+string equationListToString(mpf_t equation[][2],int size){
     mp_exp_t expo;
     // convert the list of coefficients and terms into a string which is the line's equation
     string s = "";
     for(int i=0; i<5; i++){
         
         string num = mpf_get_str(NULL,&expo,10,100,equation[i][0]);
-        string num2 =mpf_get_str(NULL,&expo,10,100,equation[i][1]); 
+        string num2 = mpf_get_str(NULL,&expo,10,100,equation[i][1]); 
 
         // incorperate decimals
         num = bigNum::addDecimal(num,expo);
@@ -270,34 +257,26 @@ Equation stringToEquationData(string equation){
                     }
                 }
                 bigNum::HighNum h;
-                h.power = stoi(p);
-                h.digits = stoi(c);
-                h.zeros = 0;
-                h.positive = true;
+                mpf_init(h.digits);
+                mpf_init(h.power);
+                mpf_set_str(h.digits,c.c_str(),10);
+                mpf_set_str(h.power,p.c_str(),10);
                 e.powers.push_back(h);
                 
             } else if (buff.find((string)"x") != string::npos){
                 string s = buff.substr(0,buff.find((string)"x")-1);
                 bigNum::HighNum h;
-                if (s.find((string)"e") != string::npos){
-                    h = bigNum::stringToHighNum(s);
-                } else{
-                    h.digits = abs(stoi(s));
-                    h.zeros = 0;
-                    h.positive = stoi(s) > -1;
-                }
-                h.power = 1;
+                mpf_init(h.digits);
+                mpf_init(h.power);
+                mpf_set_str(h.digits,s.c_str(),10);
+                mpf_set_ui(h.power,(unsigned long int)1);
                 e.coefficients.push_back(h);
             } else{
                 bigNum::HighNum h;
-                if (buff.find((string)"e") != string::npos){
-                    h = bigNum::stringToHighNum(buff);
-                } else{
-                    h.digits = abs(stoi(buff));
-                    h.zeros = 0;
-                    h.positive = stoi(buff) > -1;
-                }
-                h.power = 1;
+                mpf_init(h.digits);
+                mpf_init(h.power);
+                mpf_set_str(h.digits,buff.c_str(),10);
+                mpf_set_ui(h.power,(unsigned long int)1);
                 e.constants.push_back(h);
             }
             
@@ -311,33 +290,31 @@ Equation stringToEquationData(string equation){
 }
 string equationDataToString(Equation e){
     string s = "";
+    mp_exp_t expo;
+
     for(bigNum::HighNum h : e.constants){
-        s += to_string(h.digits);
-        for(int i=0; i<h.zeros; i++){
-            s += "0";
-        }
+        string x = mpf_get_str(NULL,&expo,10,100,h.digits);
+        s += bigNum::addDecimal(x,expo);
         s += " + ";
     }
     for(bigNum::HighNum h : e.coefficients){
-        s += to_string(h.digits);
-        for(int i=0; i<h.zeros; i++){
-            s += "0";
-        }
+        string x = mpf_get_str(NULL,&expo,10,100,h.digits);
+        s += bigNum::addDecimal(x,expo);
         s += "*x + ";
     }
     for(bigNum::HighNum h : e.powers){
-        s += to_string(h.digits);
-        for(int i=0; i<h.zeros; i++){
-            s += "0";
-        }
-        s += "*x**" + to_string(h.power) + " + ";
+        string x = mpf_get_str(NULL,&expo,10,100,h.digits);
+        s += bigNum::addDecimal(x,expo);
+        x = mpf_get_str(NULL,&expo,10,100,h.power);
+        s += "*x**" + bigNum::addDecimal(x,expo) + " + ";
     }
     
-    // remove trailing " + "
-    s = s.substr(0,s.length()-3);
+    // remove the trailing " + " left by the for loops appending to s
+    if (e.constants.size() > 0 || e.coefficients.size() > 0 || e.powers.size() > 0){
+        s = s.substr(0,s.length()-2);
+    }
     
     return s;
-    
 }
 
 typedef struct{
@@ -399,7 +376,7 @@ CipherEquations encrypt(KeyPair keyPair, unsigned char plainText[], int chunkSiz
     }
     // simplify the equation so it's harder to reverse engineer
     
-    string ce = equationListToString(compressorEquation);
+    string ce = equationListToString(compressorEquation,5);
     ce = simplify(ce);
     
     // MODULO SLOPE
@@ -443,15 +420,11 @@ CipherEquations encrypt(KeyPair keyPair, unsigned char plainText[], int chunkSiz
         mpf_set_z(moduloEquation[i][1], keyPair.equationModifier[i-1][1]);
     }
     
-    string me = equationListToString(moduloEquation);
+    string me = equationListToString(moduloEquation,5);
     me = simplify(me);
     
     Equation compe = stringToEquationData(ce);
     Equation mode = stringToEquationData(me);
-
-    vector<bigNum::HighNum> x;
-    
-    x.push_back(bigNum::HighNum{1,0,1,1});
     
     return (CipherEquations){
         compe,
@@ -460,13 +433,17 @@ CipherEquations encrypt(KeyPair keyPair, unsigned char plainText[], int chunkSiz
     };
 }
 
+void decrypt(KeyPair key, CipherEquations cipher){
+    
+}
 
 int main() {
     KeyPair key = genKeyPair();
     
     unsigned char text[] = {1,2,3};
-    encrypt(key,text,3);
-    //cout << equationDataToString(c.compressorEquation) << endl;
+    CipherEquations c = encrypt(key,text,3);
+    
+    cout << equationDataToString(c.compressorEquation) << endl;
     //cout << equationDataToString(c.moduloEquation) << endl;
     /*
     for(unsigned char v: c.compressionFactor){
