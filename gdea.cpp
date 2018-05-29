@@ -90,7 +90,7 @@ namespace customRandom{
         mp_exp_t ex;
         
         //return mpf_get_str(NULL,&ex,10,1000,temp);
-        return "6";
+        return "4";
         /*
         temp = d[2]*d[3]
         out = (d[0]*d[1] + temp * 
@@ -140,7 +140,7 @@ KeyPair genKeyPair(){
         mpz_mod_ui(_random,_random,5);
         
         mpz_set_str(keyPair.equationModifier[i][0],customRandom::getRandom(),10);
-        mpz_add_ui(keyPair.equationModifier[i][1],keyPair.equationModifier[i][1],EQ_MODIFIERS[(int)mpz_get_ui(_random)]);
+        mpz_add_ui(keyPair.equationModifier[i][1],keyPair.equationModifier[i][1],EQ_MODIFIERS[(int)mpz_get_ui(_random)%5]);
     }
     
     return keyPair;
