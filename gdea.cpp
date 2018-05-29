@@ -90,7 +90,7 @@ namespace customRandom{
         mp_exp_t ex;
         
         //return mpf_get_str(NULL,&ex,10,1000,temp);
-        return "10";
+        return "4";
         
         /*
         temp = d[2]*d[3]
@@ -424,11 +424,11 @@ namespace convert{
         }
         // STRING IS NOW THE FIXED STRING
         equation = ns;
-        
         // convert to more compact data
         for(int i=0; i<equation.length(); i++){
             if ((i > 0 && (equation.at(i) == '+' || equation.at(i) == '-')) || i == equation.length()-1){
                 if(equation.at(i) == '-') buff += equation.at(i);
+                if(equation.at(i) == 'x') buff += equation.at(i);
                 // put it in the respective vector based on the type of term it is
                 if (buff.find((string)"x**") != string::npos){
                     buff += equation.at(i);
@@ -470,6 +470,7 @@ namespace convert{
                     HighNum h;
                     mpf_init(h.digits);
                     mpf_init(h.power);
+
                     mpf_set_str(h.digits,buff.c_str(),10);
                     mpf_set_ui(h.power,(unsigned long int)1);
                     e.constants.push_back(h);
@@ -492,6 +493,7 @@ namespace convert{
             s += addDecimal(x,expo);
             s += " + ";
         }
+
         for(HighNum h : e.coefficients){
             mp_exp_t expo;
             string x = mpf_get_str(NULL,&expo,10,100,h.digits);
@@ -708,6 +710,7 @@ CipherEquations encrypt(KeyPair keyPair, unsigned char plainText[], int chunkSiz
     }
     // splits data into many chunks for lower cipher text size and greater efficiency
     int compressor = 65536 * 4;
+
     byteLogic::multiply(&plainVector,(int)mpz_get_ui(keyPair.blockUCode));
     byteLogic::DivMod splitter = byteLogic::divmod(plainVector,compressor);
     
@@ -752,7 +755,6 @@ vector<unsigned char> decrypt(KeyPair key, CipherEquations cipher){
     compressorEquation += " - (" + convert::equationListToString(key.equationModifier,4,true) + ")";
     
     string integrated = engine::simplify(core::integrate(engine::simplify(compressorEquation)));
-    
     string replaced = "";
     for(int i=0; i<integrated.length();i++){
         char c = integrated.at(i);
@@ -815,7 +817,7 @@ int main(){
     vector<unsigned char> v = decrypt(key,c);
     
     for(unsigned char x: v){
-        cout << (int)x << endl;
+        cout << "<" << (int)x << ">" << endl;
     }
     return 0;
 }
