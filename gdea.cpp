@@ -90,7 +90,8 @@ namespace customRandom{
         mp_exp_t ex;
         
         //return mpf_get_str(NULL,&ex,10,1000,temp);
-        return "4";
+        return "10";
+        
         /*
         temp = d[2]*d[3]
         out = (d[0]*d[1] + temp * 
@@ -319,10 +320,9 @@ namespace convert{
         for(int i=0; i<size; i++){
             
             string num = mpf_get_str(NULL,&expo,10,100,equation[i][0]);
-            string num2 = mpf_get_str(NULL,&expo,10,100,equation[i][1]); 
-            
-            // incorperate decimals
             num = addDecimal(num,expo);
+
+            string num2 = mpf_get_str(NULL,&expo,10,100,equation[i][1]); 
             num2 = addDecimal(num2,expo);
     
             if (i == 0 && !allpowers){
@@ -485,14 +485,13 @@ namespace convert{
     }
     string equationDataToString(Equation e){
         string s = "";
-        
+        // TODO: known bug with 4 at this next for loop
         for(HighNum h : e.constants){
             mp_exp_t expo;
             string x = mpf_get_str(NULL,&expo,10,100,h.digits);
             s += addDecimal(x,expo);
             s += " + ";
         }
-
         for(HighNum h : e.coefficients){
             mp_exp_t expo;
             string x = mpf_get_str(NULL,&expo,10,100,h.digits);
@@ -601,8 +600,12 @@ namespace core{
         mpf_set(output.equation[0][0], slope);
         mpf_set(output.equation[0][1], b);
         for(int i=1; i<5; i++){
+            //mpz_out_str(stdout,10,keyPair.equationModifier[i-1][0]);
+            //mpz_out_str(stdout,10,keyPair.equationModifier[i-1][1]);
+
             mpf_init(output.equation[i][0]);
             mpf_init(output.equation[i][1]);
+
             mpf_set_z(output.equation[i][0], keyPair.equationModifier[i-1][0]);
             mpf_set_z(output.equation[i][1], keyPair.equationModifier[i-1][1]);
         }
@@ -713,6 +716,7 @@ CipherEquations encrypt(KeyPair keyPair, unsigned char plainText[], int chunkSiz
     
     // first encode the compressor
     core::EquationSet packagedEquation = core::secretSauce(keyPair, splitter, compressor);
+
     string compressorEquation = engine::simplify(
         convert::equationListToString(
             packagedEquation.equation,
@@ -720,7 +724,7 @@ CipherEquations encrypt(KeyPair keyPair, unsigned char plainText[], int chunkSiz
         )
     );
     convert::Equation compressorData = convert::stringToEquationData(compressorEquation);
-    
+
     // next the modulo
     core::EquationSet packagedModEquation = core::secretSauce(keyPair, splitter, splitter.mod);
     string moduloEquation = engine::simplify(
